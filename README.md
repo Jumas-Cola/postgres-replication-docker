@@ -22,7 +22,7 @@ host    replication    all    0.0.0.0/0    md5
 docker compose down && docker compose up -d
 ```
 
-4. Зайти в контейнер postgres-master
+4. Зайти в контейнер postgres-slave
 
 ```
 docker compose exec postgres-slave /bin/bash
