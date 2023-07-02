@@ -1,0 +1,95 @@
+version: '3.7'
+
+services:
+  postgres-master:
+    image: postgres:15.3-bullseye
+    container_name: postgres-master
+    restart: unless-stopped
+    tty: true
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+    command:
+      - 'postgres'
+      - '-c'
+      - 'wal_level=hot_standby'
+      - '-c'
+      - 'archive_mode=on'
+      - '-c'
+      - "archive_command='cd .'"
+      - '-c'
+      - 'max_wal_senders=8'
+      - '-c'
+      - 'hot_standby=on'
+    volumes:
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+      - postgres_data_master:/var/lib/postgresql/data/
+    networks:
+      - app-network
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'pg_isready',
+          '-q',
+          '-d',
+          '${DB_DATABASE}',
+          '-U',
+          '${DB_USERNAME}',
+        ]
+      retries: 3
+      timeout: 5s
+
+  postgres-slave:
+    image: postgres:15.3-bullseye
+    container_name: postgres-slave
+    restart: unless-stopped
+    tty: true
+    ports:
+      - 5433:5432
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+    command:
+      - 'postgres'
+      - '-c'
+      - 'wal_level=hot_standby'
+      - '-c'
+      - 'archive_mode=on'
+      - '-c'
+      - "archive_command='cd .'"
+      - '-c'
+      - 'max_wal_senders=8'
+      - '-c'
+      - 'hot_standby=on'
+    volumes:
+      - postgres_data_slave:/var/lib/postgresql/data/
+    networks:
+      - app-network
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'pg_isready',
+          '-q',
+          '-d',
+          '${DB_DATABASE}',
+          '-U',
+          '${DB_USERNAME}',
+        ]
+      retries: 3
+      timeout: 5s
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data_master:
+    driver: local
+  postgres_data_slave:
+    driver: local
